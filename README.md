@@ -31,6 +31,13 @@ Author links:
 - [Steam](https://steamcommunity.com/profiles/76561198046849708)
 - Discord: realnik10 (286889717985705986)
 
+# Clothing
+## Mask guide
+[File](Clothing/Masks/4KMaskingTutorial.png)
+[File](Clothing/Masks/MasksOnCharacter.png)
+[File](Clothing/Masks/Mask.png)
+Made by Scavenger, explaining the mask system. [Oldest upload source](https://discord.com/channels/136501320340209664/869327724504842330/954782177067937832)
+
 # Lua (API)
 ## ItemSpawningExample.lua
 [File](Lua%20(API)/ItemSpawningExample.lua)
