@@ -1,0 +1,14 @@
+[project]
+name = "collection-tools"
+version = "1.0.0"
+description = "Allows for manipulating PZ mod lists."
+authors = [{ name = "aoqia", email = "aoqia@aoqia.dev" }]
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.13,<4.0"
+dependencies = [
+    "steam @ git+https://github.com/solsticegamestudios/steam.git",
+    "inquirerpy (>=0.3.4,<0.4.0)",
+    "loguru>=0.7.3",
+    "pyperclip>=1.11.0",
+]
