@@ -86,50 +86,80 @@ def main():
 
     # Send the requests to add all the items to the collection.
 
+    rate_limited: bool = False
+    rate_limit_count: int = 0
+    rate_limit_delay: int = 1
+
     before = time.time()
     for workshop_id in workshop_ids:
         workshop_id = workshop_id.strip()
-        res = session.post(
-            Endpoints.COLLECTION_ADD.value,
-            data="&".join(
-                f"{k}={v}"
-                for k, v in {
-                    "id": collection_id,
-                    "childid": workshop_id,
-                    "sessionid": client.sessionID,
-                }.items()
-            ),
-            headers={"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"},
-        )
-        res.raise_for_status()
 
-        json: dict = res.json()
-        json_success = int(json.get("success", EResult.Invalid.value))
-        json_html = str(json.get("html"))
-        json_filetype = int(json.get("fileType", EWorkshopFileType.Community.value))
+        res = None
+        while res is None or rate_limited:
+            res = session.post(
+                Endpoints.COLLECTION_ADD.value,
+                data="&".join(
+                    f"{k}={v}"
+                    for k, v in {
+                        "id": collection_id,
+                        "childid": workshop_id,
+                        "sessionid": client.sessionID,
+                    }.items()
+                ),
+                headers={"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"},
+            )
+            res.raise_for_status()
 
-        if json_success != EResult.OK.value:
-            if json_success == EResult.DuplicateRequest:
+            json: dict = res.json()
+            json_success = int(json.get("success", EResult.Invalid.value))
+            json_html = str(json.get("html"))
+            json_filetype = int(json.get("fileType", EWorkshopFileType.Community.value))
+
+            if json_success == EResult.DuplicateRequest.value:
                 logger.warning("Failed to add item to collection.")
                 logger.warning("\tReason: Item was already in the collection")
+                break
+
+            if json_success == EResult.Timeout.value:
+                rate_limited = True
+                rate_limit_count += 1
+
+                if rate_limit_count % 3 == 0:
+                    if rate_limit_delay == 1:
+                        rate_limit_delay += 1
+                    else:
+                        rate_limit_delay *= 2
+
+                logger.warning(f"We're being rate limited! Waiting {rate_limit_delay} seconds...")
+                time.sleep(rate_limit_delay)
                 continue
 
-            logger.error("Failed to add item to collection.")
-            logger.error(
-                f"\tReason: Expected success to be OK but got {EResult(json_success).name}"
+            rate_limited = False
+
+            if json_success != EResult.OK.value:
+                logger.error("Failed to add item to collection.")
+                logger.error(
+                    f"\tReason: Expected success to be OK but got {EResult(json_success).name}"
+                )
+                break
+
+            if json_html == "None":
+                logger.error("Failed to add item to collection.")
+                logger.error("\tReason: 'html' in request response is None")
+                break
+
+            mod_id_re = re.search(r"Mod ID:\s*([^\"]+?)(?:<|\")", json_html)
+            mod_id = mod_id_re.group(1) if mod_id_re else "unknown"
+
+            item_type = (
+                "item" if json_filetype != EWorkshopFileType.Collection.value else "collection"
             )
-            break
+            logger.info(
+                f"Added {item_type} {mod_id} ({workshop_id}) to collection {collection_id}."
+            )
 
-        if json_html == "None":
-            logger.error("Failed to add item to collection.")
-            logger.error("\tReason: 'html' in request response is None")
-            break
-
-        mod_id_re = re.search(r"Mod ID:\s*([^\"]+)\"", json_html)
-        mod_id = mod_id_re.group(1) if mod_id_re else "unknown"
-
-        item_type = "item" if json_filetype != EWorkshopFileType.Collection.value else "collection"
-        logger.info(f"Added {item_type} {mod_id} ({workshop_id}) to collection {collection_id}.")
+            logger.info("Waiting half a second to prevent rate limit...")
+            time.sleep(0.5)
     after = time.time()
 
     logger.info(f"Time taken: {(after - before):.2f}s")
