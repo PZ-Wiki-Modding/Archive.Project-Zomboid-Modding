@@ -7,13 +7,16 @@ from enum import Enum
 
 from InquirerPy import inquirer
 from loguru import logger
+from requests_ratelimiter import LimiterAdapter
 from steam.enums.common import EResult, EWorkshopFileType
 from steam.webauth import WebAuth
 
+STEAMCOMMUNITY_URL = "https://steamcommunity.com"
+
 
 class Endpoints(Enum):
-    COLLECTION_EDIT = "https://steamcommunity.com/sharedfiles/managecollection"
-    COLLECTION_ADD = "https://steamcommunity.com/sharedfiles/addchild"
+    COLLECTION_EDIT = f"{STEAMCOMMUNITY_URL}/sharedfiles/managecollection"
+    COLLECTION_ADD = f"{STEAMCOMMUNITY_URL}/sharedfiles/addchild"
 
 
 def clear():
@@ -38,6 +41,8 @@ def main():
     logger.info(f"Logged in as {client.username} ({client.steam_id})!")
 
     session = client.session
+
+    session.mount(STEAMCOMMUNITY_URL, LimiterAdapter(per_minute=60, per_day=50_000))
 
     collection_id: str = inquirer.text(  # type: ignore
         message="Collection ID to add items to:",

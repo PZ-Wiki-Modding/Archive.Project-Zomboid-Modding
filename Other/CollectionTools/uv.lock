@@ -143,6 +143,7 @@ dependencies = [
     { name = "inquirerpy" },
     { name = "loguru" },
     { name = "pyperclip" },
+    { name = "requests-ratelimiter" },
     { name = "steam" },
 ]
 
@@ -151,6 +152,7 @@ requires-dist = [
     { name = "inquirerpy", specifier = ">=0.3.4,<0.4.0" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "pyperclip", specifier = ">=1.11.0" },
+    { name = "requests-ratelimiter", specifier = ">=0.10.0" },
     { name = "steam", git = "https://github.com/solsticegamestudios/steam.git" },
 ]
 
@@ -259,6 +261,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pyrate-limiter"
+version = "4.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/19/27/e564f33ea085c63d5540f707b31aeb50a4992eac2da655dc02435a760a07/pyrate_limiter-4.4.0.tar.gz", hash = "sha256:2c0c720c4fa16c5d8199e4821bf34507fb49c007a25b786cec6fb94ffd0844aa", size = 90955, upload-time = "2026-06-14T10:52:03.021Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2b/77/2b5ea2e5e343fd7f74ba9c50a282d7cb66d1be3d12bd647510338d78fcf1/pyrate_limiter-4.4.0-py3-none-any.whl", hash = "sha256:f738dfa3c7ac1222a5ea3d31e00cfd31b5592b13ade4077afe9e8ac6293381f5", size = 43102, upload-time = "2026-06-14T10:52:01.334Z" },
+]
+
+[[package]]
 name = "requests"
 version = "2.34.2"
 source = { registry = "https://pypi.org/simple" }
@@ -271,6 +282,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ac/c3/e2a2b89f2d3e2179abd6d00ebd70bff6273f37fb3e0cc209f48b39d00cbf/requests-2.34.2.tar.gz", hash = "sha256:f288924cae4e29463698d6d60bc6a4da69c89185ad1e0bcc4104f584e960b9ed", size = 142856, upload-time = "2026-05-14T19:25:27.735Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a0/f4/c67b0b3f1b9245e8d266f0f112c500d50e5b4e83cb6f3b71b6528104182a/requests-2.34.2-py3-none-any.whl", hash = "sha256:2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0", size = 73075, upload-time = "2026-05-14T19:25:26.443Z" },
+]
+
+[[package]]
+name = "requests-ratelimiter"
+version = "0.10.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pyrate-limiter" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3a/71/aecc6307695ddad2d11f474cd79d79b111ee90dd123d697b76eaa1cd73a1/requests_ratelimiter-0.10.0.tar.gz", hash = "sha256:9c1a78d7646caa5ccf211a6c341abd16d329be2c8c35044a418aa9da7c0e7a33", size = 17190, upload-time = "2026-04-22T18:11:15.925Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f1/87/c94855590fde39c87cf671d242e555984d93e76d2029a6a3ad3a67a072ad/requests_ratelimiter-0.10.0-py3-none-any.whl", hash = "sha256:79a3e44c13de8d72705512696b44b94265bd96d997580c73e480373814af228e", size = 11408, upload-time = "2026-04-22T18:11:14.398Z" },
 ]
 
 [[package]]
