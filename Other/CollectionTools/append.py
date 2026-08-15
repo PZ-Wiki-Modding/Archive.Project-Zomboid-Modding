@@ -7,9 +7,8 @@ from enum import Enum
 
 from InquirerPy import inquirer
 from loguru import logger
-from requests import Response, Session
+from requests import Session
 from requests.adapters import HTTPAdapter
-from requests.structures import Hea
 from requests_ratelimiter import LimiterAdapter
 from steam.enums.common import EResult, EWorkshopFileType
 from steam.webauth import WebAuth
