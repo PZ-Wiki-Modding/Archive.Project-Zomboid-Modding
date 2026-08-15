@@ -12,4 +12,6 @@ dependencies = [
     "loguru>=0.7.3",
     "pyperclip>=1.11.0",
     "requests-ratelimiter>=0.10.0",
+    "requests>=2.34.2",
+    "urllib3>=2.7.0",
 ]

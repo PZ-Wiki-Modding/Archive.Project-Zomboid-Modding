@@ -143,8 +143,10 @@ dependencies = [
     { name = "inquirerpy" },
     { name = "loguru" },
     { name = "pyperclip" },
+    { name = "requests" },
     { name = "requests-ratelimiter" },
     { name = "steam" },
+    { name = "urllib3" },
 ]
 
 [package.metadata]
@@ -152,8 +154,10 @@ requires-dist = [
     { name = "inquirerpy", specifier = ">=0.3.4,<0.4.0" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "pyperclip", specifier = ">=1.11.0" },
+    { name = "requests", specifier = ">=2.34.2" },
     { name = "requests-ratelimiter", specifier = ">=0.10.0" },
     { name = "steam", git = "https://github.com/solsticegamestudios/steam.git" },
+    { name = "urllib3", specifier = ">=2.7.0" },
 ]
 
 [[package]]
