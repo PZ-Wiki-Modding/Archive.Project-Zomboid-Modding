@@ -135,6 +135,8 @@ def main():
                 continue
 
             rate_limited = False
+            rate_limit_count = 0
+            rate_limit_delay = 1
 
             if json_success != EResult.OK.value:
                 logger.error("Failed to add item to collection.")
