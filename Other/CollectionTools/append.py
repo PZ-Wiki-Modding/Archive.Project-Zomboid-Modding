@@ -7,13 +7,57 @@ from enum import Enum
 
 from InquirerPy import inquirer
 from loguru import logger
+from requests import Session
+from requests.adapters import HTTPAdapter
+from requests_ratelimiter import LimiterAdapter
 from steam.enums.common import EResult, EWorkshopFileType
 from steam.webauth import WebAuth
+from urllib3.util import Retry
+
+STEAMCOMMUNITY_URL = "https://steamcommunity.com"
 
 
 class Endpoints(Enum):
-    COLLECTION_EDIT = "https://steamcommunity.com/sharedfiles/managecollection"
-    COLLECTION_ADD = "https://steamcommunity.com/sharedfiles/addchild"
+    COLLECTION_EDIT = f"{STEAMCOMMUNITY_URL}/sharedfiles/managecollection"
+    COLLECTION_ADD = f"{STEAMCOMMUNITY_URL}/sharedfiles/addchild"
+
+
+def post_with_retry(
+    session: Session,
+    url: str,
+    *,
+    json=None,
+    headers: dict[str, str | bytes],
+    max_retries: int = 3,
+) -> dict:
+    for attempt in range(max_retries + 1):
+        response = session.post(url, json=json, headers=headers)
+        response.raise_for_status()
+
+        data: dict = response.json()
+
+        success = int(data.get("success", EResult.Invalid.value))
+        if success == EResult.OK.value:
+            return data
+
+        if success != EResult.Timeout.value:
+            return data
+
+        if attempt == max_retries:
+            return data
+
+        retry_after = response.headers.get("Retry-After")
+        if retry_after:
+            try:
+                delay = float(retry_after)
+            except ValueError:
+                delay = 2**attempt
+        else:
+            delay = 2**attempt
+
+        time.sleep(delay)
+
+    raise RuntimeError("unreachable")
 
 
 def clear():
@@ -38,6 +82,19 @@ def main():
     logger.info(f"Logged in as {client.username} ({client.steam_id})!")
 
     session = client.session
+
+    # Apply a limiter and retry adapter
+    retry = Retry(
+        total=3,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods={"GET", "HEAD", "OPTIONS"},
+        backoff_factor=1,
+        respect_retry_after_header=True,
+        raise_on_status=False,
+    )
+
+    session.mount(STEAMCOMMUNITY_URL, LimiterAdapter(per_minute=60, per_day=50_000))
+    session.mount(STEAMCOMMUNITY_URL, HTTPAdapter(max_retries=retry))
 
     collection_id: str = inquirer.text(  # type: ignore
         message="Collection ID to add items to:",
@@ -89,9 +146,11 @@ def main():
     before = time.time()
     for workshop_id in workshop_ids:
         workshop_id = workshop_id.strip()
-        res = session.post(
+
+        data = post_with_retry(
+            session,
             Endpoints.COLLECTION_ADD.value,
-            data="&".join(
+            json="&".join(
                 f"{k}={v}"
                 for k, v in {
                     "id": collection_id,
@@ -101,34 +160,30 @@ def main():
             ),
             headers={"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"},
         )
-        res.raise_for_status()
 
-        json: dict = res.json()
-        json_success = int(json.get("success", EResult.Invalid.value))
-        json_html = str(json.get("html"))
-        json_filetype = int(json.get("fileType", EWorkshopFileType.Community.value))
-
-        if json_success != EResult.OK.value:
-            if json_success == EResult.DuplicateRequest:
-                logger.warning("Failed to add item to collection.")
-                logger.warning("\tReason: Item was already in the collection")
-                continue
-
-            logger.error("Failed to add item to collection.")
-            logger.error(
-                f"\tReason: Expected success to be OK but got {EResult(json_success).name}"
-            )
+        success = int(data.get("success", EResult.Invalid.value))
+        if success == EResult.DuplicateRequest.value:
+            logger.warning("Failed to add item to collection.")
+            logger.warning("\tReason: Item was already in the collection")
             break
 
-        if json_html == "None":
+        if success != EResult.OK.value:
+            logger.error("Failed to add item to collection.")
+            logger.error(f"\tReason: Expected success to be OK but got {EResult(success).name}")
+            break
+
+        html = str(data.get("html"))
+        if html == "None":
             logger.error("Failed to add item to collection.")
             logger.error("\tReason: 'html' in request response is None")
             break
 
-        mod_id_re = re.search(r"Mod ID:\s*([^\"]+)\"", json_html)
+        mod_id_re = re.search(r"Mod ID:\s*([^\"]+?)(?:<|\")", html)
         mod_id = mod_id_re.group(1) if mod_id_re else "unknown"
 
-        item_type = "item" if json_filetype != EWorkshopFileType.Collection.value else "collection"
+        file_type = int(data.get("fileType", EWorkshopFileType.Community.value))
+        item_type = "item" if file_type != EWorkshopFileType.Collection.value else "collection"
+
         logger.info(f"Added {item_type} {mod_id} ({workshop_id}) to collection {collection_id}.")
     after = time.time()
 
