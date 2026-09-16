@@ -4,6 +4,7 @@ import os
 import re
 import time
 from enum import Enum
+from typing import Any
 
 from InquirerPy import inquirer
 from loguru import logger
@@ -26,25 +27,25 @@ def post_with_retry(
     session: Session,
     url: str,
     *,
-    json=None,
+    data: Any = None,
     headers: dict[str, str | bytes],
     max_retries: int = 3,
 ) -> dict:
     for attempt in range(max_retries + 1):
-        response = session.post(url, json=json, headers=headers)
+        response = session.post(url, data=data, headers=headers)
         response.raise_for_status()
 
-        data: dict = response.json()
+        json: dict = response.json()
 
-        success = int(data.get("success", EResult.Invalid.value))
-        if success == EResult.OK.value:
-            return data
+        success: EResult = EResult(json.get("success", EResult.Invalid.value))
+        if success == EResult.OK:
+            return json
 
-        if success != EResult.Timeout.value:
-            return data
+        if success != EResult.Timeout:
+            return json
 
         if attempt == max_retries:
-            return data
+            return json
 
         retry_after = response.headers.get("Retry-After")
         if retry_after:
@@ -87,7 +88,7 @@ def main():
     retry = Retry(
         total=3,
         status_forcelist=[429, 500, 502, 503, 504],
-        allowed_methods={"GET", "HEAD", "OPTIONS"},
+        allowed_methods=None,
         backoff_factor=1,
         respect_retry_after_header=True,
         raise_on_status=False,
@@ -105,7 +106,8 @@ def main():
 
     # Send a request to the collection page to ensure it exists.
 
-    res = session.get(f"{Endpoints.COLLECTION_EDIT.value}/?id={collection_id}")
+    referrer: str = f"{Endpoints.COLLECTION_EDIT.value}/?id={collection_id}"
+    res = session.get(referrer)
     res.raise_for_status()
 
     if "error_ctn" in res.text:
@@ -150,7 +152,7 @@ def main():
         data = post_with_retry(
             session,
             Endpoints.COLLECTION_ADD.value,
-            json="&".join(
+            data="&".join(
                 f"{k}={v}"
                 for k, v in {
                     "id": collection_id,
@@ -161,15 +163,15 @@ def main():
             headers={"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"},
         )
 
-        success = int(data.get("success", EResult.Invalid.value))
-        if success == EResult.DuplicateRequest.value:
+        success: EResult = EResult(data.get("success", EResult.Invalid.value))
+        if success == EResult.DuplicateRequest:
             logger.warning("Failed to add item to collection.")
             logger.warning("\tReason: Item was already in the collection")
             break
 
-        if success != EResult.OK.value:
+        if success != EResult.OK:
             logger.error("Failed to add item to collection.")
-            logger.error(f"\tReason: Expected success to be OK but got {EResult(success).name}")
+            logger.error(f"\tReason: Expected success to be OK but got {success.name}")
             break
 
         html = str(data.get("html"))
