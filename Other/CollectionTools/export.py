@@ -3,6 +3,7 @@
 import os
 import sys
 from pathlib import Path
+from typing import Optional
 
 import pyperclip
 from InquirerPy import inquirer
@@ -84,9 +85,16 @@ def main():
         for submod in workshop_dir.joinpath("mods").iterdir():
             modid = ""
 
+            version_dir: Optional[Path] = next(
+                (d if d.name.startswith("42") else None for d in submod.iterdir()), None
+            )
+            if version_dir is None:
+                logger.error("Failed to find version dir for mod, skipping..")
+                continue
+
             logger.debug("Reading mod.info file")
-            modinfo = submod.joinpath("mod.info")
-            if not modinfo.exists:
+            modinfo = version_dir.joinpath("mod.info")
+            if not modinfo.exists():
                 logger.warning("mod.info file doesn't exist, skipping submod")
                 continue
 
